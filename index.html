@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notespack — Frontend Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#07071A; --bg-mid:#0E0E22; --card:#141432; --line:#252548;
+  --text:#EAF1FF; --dim:#9AA3C4; --faint:#6E769A;
+  --cyan:#00D4FF; --violet:#6B3EFF; --pink:#FF4EA8;
+  --g1:linear-gradient(135deg,#00D4FF,#6B3EFF);
+  --g2:linear-gradient(135deg,#6B3EFF,#FF4EA8);
+  --g3:linear-gradient(135deg,#00D4FF,#6B3EFF,#FF4EA8);
+  --disp:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Inter","Segoe UI",system-ui,sans-serif;
+  --ease:cubic-bezier(.16,.84,.44,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:var(--body);-webkit-font-smoothing:antialiased;cursor:none}
+body.touch{cursor:auto}
+
+/* ---------- animated background ---------- */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:
+  radial-gradient(1200px 800px at 80% -10%, rgba(0,212,255,.10), transparent 60%),
+  radial-gradient(1000px 900px at -10% 110%, rgba(255,78,168,.10), transparent 60%),
+  var(--bg)}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.45;
+  will-change:transform;mix-blend-mode:screen}
+.orb.a{width:55vw;height:55vw;background:radial-gradient(circle,#00D4FF,transparent 70%);top:-18vw;right:-12vw;animation:float1 18s ease-in-out infinite}
+.orb.b{width:48vw;height:48vw;background:radial-gradient(circle,#6B3EFF,transparent 70%);bottom:-16vw;left:-12vw;animation:float2 22s ease-in-out infinite}
+.orb.c{width:34vw;height:34vw;background:radial-gradient(circle,#FF4EA8,transparent 70%);top:40%;left:55%;opacity:.30;animation:float3 26s ease-in-out infinite}
+@keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-4vw,5vh) scale(1.12)}}
+@keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(5vw,-4vh) scale(1.15)}}
+@keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-6vw,-6vh) scale(.9)}}
+#grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- cursor fx ---------- */
+#halo{position:fixed;z-index:9000;top:0;left:0;width:34px;height:34px;border-radius:50%;
+  border:1.5px solid rgba(0,212,255,.7);pointer-events:none;transform:translate(-50%,-50%);
+  transition:width .25s,height .25s,opacity .25s;mix-blend-mode:screen;box-shadow:0 0 24px rgba(0,212,255,.45)}
+#dot{position:fixed;z-index:9001;top:0;left:0;width:6px;height:6px;border-radius:50%;
+  background:var(--cyan);pointer-events:none;transform:translate(-50%,-50%);box-shadow:0 0 12px var(--cyan)}
+body.touch #halo,body.touch #dot{display:none}
+
+/* ---------- stage ---------- */
+#stage{position:fixed;inset:0;z-index:5;perspective:2000px}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:5.5vh 6vw;opacity:0;transform:translateX(7%) rotateY(-7deg) scale(.96);
+  transform-origin:center;transition:opacity .7s var(--ease),transform .8s var(--ease);
+  pointer-events:none;visibility:hidden}
+.slide.active{opacity:1;transform:none;pointer-events:auto;visibility:visible}
+.slide.left{opacity:0;transform:translateX(-7%) rotateY(7deg) scale(.96);visibility:visible}
+.slide.full{padding:0;justify-content:center;align-items:center;text-align:center}
+
+/* reveal */
+[data-rv]{opacity:0;transform:translateY(20px);transition:opacity .6s var(--ease),transform .7s var(--ease)}
+.slide.active [data-rv].show{opacity:1;transform:none}
+
+/* ---------- typography & components ---------- */
+.eyebrow{font-family:var(--disp);font-size:clamp(11px,1vw,15px);font-weight:600;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--cyan);margin-bottom:1.6vh}
+.eyebrow.w{color:rgba(255,255,255,.85)}
+.title{font-family:var(--disp);font-weight:700;line-height:1.02;letter-spacing:-.02em;
+  font-size:clamp(34px,5.2vw,76px);color:var(--text)}
+.subtitle{color:var(--dim);font-size:clamp(14px,1.5vw,21px);margin-top:1.4vh;max-width:60ch}
+.foot{position:absolute;left:6vw;right:6vw;bottom:3.2vh;display:flex;justify-content:space-between;
+  align-items:center;font-size:12px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;
+  padding-top:1vh;border-top:1px solid rgba(0,212,255,.35)}
+
+.glass{background:rgba(20,20,50,.55);border:1px solid var(--line);border-radius:18px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);position:relative;overflow:hidden}
+.tilt{transform-style:preserve-3d;transition:transform .25s var(--ease),box-shadow .25s}
+.tilt::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .3s;
+  background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),rgba(0,212,255,.18),transparent 60%);pointer-events:none}
+.tilt:hover::after{opacity:1}
+
+/* cover */
+.cover-title{font-family:var(--disp);font-weight:700;font-size:clamp(64px,13vw,200px);line-height:.92;
+  letter-spacing:-.04em;background:linear-gradient(120deg,#fff 20%,#9fdcff 50%,#b9a3ff 80%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;
+  animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% 0}}
+.rule{height:5px;width:min(40vw,520px);border-radius:99px;background:var(--g1);margin:3vh 0;transform-origin:left;
+  box-shadow:0 0 28px rgba(0,212,255,.5)}
+.slide.active .rule.show{animation:wipe .7s var(--ease) both}
+@keyframes wipe{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.meta{display:flex;gap:0;margin-top:5vh;flex-wrap:wrap}
+.meta .cell{padding-right:3vw;margin-right:3vw;border-right:1px solid rgba(0,212,255,.25)}
+.meta .cell:last-child{border:0}
+.meta .k{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
+.meta .v{font-weight:600;font-size:clamp(14px,1.4vw,19px);margin-top:.5vh}
+
+/* generic grids */
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:4vw;align-items:start;margin-top:3vh}
+.lead{font-size:clamp(16px,1.8vw,24px);line-height:1.55;color:var(--dim)}
+.info{padding:2.4vh 2vw}
+.info .row{padding:1.6vh 0;border-bottom:1px solid var(--line)}
+.info .row:last-child{border:0}
+.info .k{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan)}
+.info .v{font-weight:600;font-size:clamp(15px,1.4vw,19px);margin-top:.4vh}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;margin-top:4vh;align-items:start}
+.stat{text-align:center;position:relative}
+.stat .num{font-family:var(--disp);font-weight:700;font-size:clamp(80px,15vw,210px);line-height:1;
+  letter-spacing:-.04em}
+.stat.c .num{color:var(--cyan);text-shadow:0 0 50px rgba(0,212,255,.5)}
+.stat.v .num{color:var(--violet);text-shadow:0 0 50px rgba(107,62,255,.5)}
+.stat.p .num{color:var(--pink);text-shadow:0 0 50px rgba(255,78,168,.5)}
+.stat .bar{height:3px;width:90px;margin:1.8vh auto;border-radius:99px;transform-origin:center}
+.stat.c .bar{background:var(--cyan)}.stat.v .bar{background:var(--violet)}.stat.p .bar{background:var(--pink)}
+.slide.active .stat.show .bar{animation:wipe .5s var(--ease) both}
+.stat .lab{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+.stat .cap{font-size:13px;color:var(--dim);margin-top:1vh;line-height:1.4;padding:0 1vw}
+
+/* spine */
+.tour{display:grid;grid-template-columns:1.5fr 1fr;gap:4vw;margin-top:3vh}
+.spine{position:relative;padding-left:54px}
+.spine::before{content:"";position:absolute;left:16px;top:6px;bottom:6px;width:5px;border-radius:99px;
+  background:var(--g3);transform-origin:top;box-shadow:0 0 22px rgba(107,62,255,.5)}
+.slide.active .spine.show::before{animation:grow .8s var(--ease) both}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.node{position:relative;display:flex;gap:16px;align-items:flex-start;margin:1.15vh 0}
+.node .dot{position:absolute;left:-50px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--disp);font-weight:700;font-size:11px;color:#07071A}
+.node .nm{font-family:var(--disp);font-weight:600;font-size:clamp(14px,1.35vw,18px)}
+.node .ds{font-size:12.5px;color:var(--dim);margin-top:2px}
+.plus{padding:2.4vh 1.8vw}
+.plus h4{font-family:var(--disp);color:var(--cyan);letter-spacing:.2em;font-size:12px;text-transform:uppercase;margin-bottom:2vh}
+.plus .pr{display:flex;gap:12px;align-items:flex-start;margin:2.2vh 0;color:var(--dim);font-size:14px}
+.plus .pr i{width:11px;height:11px;border-radius:50%;margin-top:5px;flex:none}
+
+/* feature cards */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vw;margin-top:3vh}
+.fcard{padding:2.4vh 1.6vw;min-height:22vh}
+.chip{width:46px;height:46px;border-radius:12px;margin-bottom:1.6vh;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.fcard h3{font-family:var(--disp);font-size:clamp(15px,1.5vw,19px);font-weight:600;margin-bottom:1vh}
+.fcard p{color:var(--dim);font-size:13.5px;line-height:1.5}
+
+/* full bleed */
+.full .bleed{position:absolute;inset:0;z-index:-1}
+.g1bleed{background:var(--g1)}.g2bleed{background:var(--g2)}
+.full .eyebrow{position:absolute;top:5vh;left:6vw}
+.huge{font-family:var(--disp);font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.02}
+.examples{display:grid;grid-template-columns:repeat(4,1fr);gap:2vw;margin-top:5vh;width:80vw}
+.ex .ring{width:38px;height:38px;border:2px solid rgba(255,255,255,.85);border-radius:50%;margin:0 auto 1.4vh}
+.ex .el{color:#fff;font-weight:600;font-size:15px}
+.ex .ed{color:rgba(255,255,255,.82);font-size:12.5px;margin-top:.4vh}
+.wcard{display:grid;grid-template-columns:1fr 1fr;gap:3vw;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.3);border-radius:18px;padding:3vh 2.4vw;width:70vw;margin-top:4vh;text-align:left;
+  backdrop-filter:blur(8px)}
+.wcard h5{color:#fff;letter-spacing:.16em;font-size:12px;text-transform:uppercase;margin-bottom:1.4vh}
+.wcard p{color:rgba(255,255,255,.92);font-size:14px;line-height:1.5}
+.wcard li{color:#fff;font-size:14px;list-style:none;margin:1vh 0;display:flex;gap:10px}
+.wcard li::before{content:"✓";color:#fff;font-weight:700}
+
+/* devices */
+.devs{display:flex;justify-content:center;align-items:flex-end;gap:3vw;margin-top:4vh;height:40vh}
+.dev{display:flex;flex-direction:column;align-items:center}
+.screen{border-radius:14px;background:var(--card);padding:14px;display:flex;flex-direction:column;gap:10px}
+.screen i{height:12px;border-radius:5px;opacity:.45;display:block}
+.dev .dn{font-family:var(--disp);font-weight:600;margin-top:1.6vh}
+.dev .dr{font-weight:600;font-size:12px;margin-top:.4vh}
+.dev .db{color:var(--dim);font-size:11.5px;margin-top:.6vh;text-align:center;max-width:14ch}
+
+/* compare columns */
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4vw;margin-top:3vh}
+.col{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:rgba(20,20,50,.5)}
+.col .hd{padding:1.4vh 0;text-align:center;font-family:var(--disp);font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;font-size:13px;color:#07071A}
+.col ul{list-style:none;padding:2vh 1.4vw}
+.col li{display:flex;gap:10px;margin:1.6vh 0;font-size:13.5px;line-height:1.4}
+.col li b{flex:none}
+
+/* file rows */
+.files{margin-top:3vh}
+.frow{display:flex;align-items:center;gap:16px;padding:1.5vh 1.4vw;border-radius:12px;
+  background:rgba(20,20,50,.5);margin-bottom:1.1vh;position:relative;overflow:hidden}
+.frow .acc{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--g1)}
+.frow .fp{font-family:var(--disp);font-weight:600;font-size:14px}
+.frow .pp{margin-left:auto;color:var(--dim);font-size:13px}
+.pill{margin:3vh auto 0;width:max-content;padding:1.1vh 2vw;border-radius:99px;
+  border:1px solid var(--cyan);background:rgba(0,212,255,.12);color:var(--cyan);font-weight:600;font-size:14px}
+
+/* roadmap */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.3vw;margin-top:3vh}
+.rcard{padding:2vh 1.2vw;min-height:18vh}
+.rcard .rn{font-family:var(--disp);font-weight:700;font-size:30px}
+.rcard h4{font-family:var(--disp);font-size:15px;font-weight:600;margin:.8vh 0}
+.rcard p{color:var(--dim);font-size:11.5px;line-height:1.4}
+
+/* closing */
+.close-h{font-size:clamp(48px,9vw,128px)}
+.close-s{font-family:var(--disp);font-weight:500;color:rgba(255,255,255,.92);font-size:clamp(22px,4vw,52px);margin-top:1vh}
+.close-b{color:rgba(255,255,255,.8);font-size:clamp(14px,1.8vw,20px);margin-top:3vh;max-width:60ch}
+
+/* marquee */
+.marq{overflow:hidden;white-space:nowrap;margin-top:2vh;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marq span{display:inline-block;animation:scrollx 22s linear infinite;font-family:var(--disp);
+  color:var(--faint);font-size:14px;letter-spacing:.06em}
+@keyframes scrollx{to{transform:translateX(-50%)}}
+
+/* ---------- chrome ---------- */
+#prog{position:fixed;top:0;left:0;height:3px;background:var(--g3);z-index:9500;transition:width .6s var(--ease);box-shadow:0 0 12px rgba(0,212,255,.6)}
+#hud{position:fixed;bottom:3vh;left:50%;transform:translateX(-50%);z-index:9500;display:flex;gap:9px;align-items:center}
+#hud .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:.3s}
+#hud .d.on{background:var(--cyan);width:26px;border-radius:99px;box-shadow:0 0 14px rgba(0,212,255,.7)}
+#cnt{position:fixed;top:3vh;right:4vw;z-index:9500;font-family:var(--disp);font-size:13px;color:var(--faint);letter-spacing:.1em}
+#cnt b{color:var(--text)}
+#hint{position:fixed;bottom:3vh;right:4vw;z-index:9500;font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+@media (max-width:760px){.two,.tour{grid-template-columns:1fr}.grid3,.grid4,.cols,.stats,.examples,.wcard{grid-template-columns:1fr 1fr}.devs{flex-wrap:wrap;height:auto}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.2s!important}.orb{animation:none}}
+</style>
+</head>
+<body>
+<div id="bg"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+<div id="grain"></div>
+<div id="halo"></div><div id="dot"></div>
+<div id="prog"></div>
+<div id="cnt"><b>01</b> / 12</div>
+<div id="hint">← → or Space &nbsp;·&nbsp; F = fullscreen</div>
+
+<div id="stage">
+
+  <!-- 1 COVER -->
+  <section class="slide" data-foot="0">
+    <div class="eyebrow" data-rv>Frontend Build · CSE 325</div>
+    <h1 class="cover-title" data-rv>Notespack</h1>
+    <div class="rule" data-rv></div>
+    <p class="subtitle" data-rv style="font-size:clamp(16px,1.9vw,26px)">A campus events platform, built for students.</p>
+    <div class="meta">
+      <div class="cell" data-rv><div class="k">Presenter</div><div class="v">Marco</div></div>
+      <div class="cell" data-rv><div class="k">Team</div><div class="v">The Syntax Errors</div></div>
+      <div class="cell" data-rv><div class="k">Course</div><div class="v">CSE 325 · BYU-Idaho</div></div>
+      <div class="cell" data-rv><div class="k">Branch</div><div class="v">marco/frontend-design</div></div>
+    </div>
+  </section>
+
+  <!-- 2 WHAT IS -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>01 · Context</div>
+    <h2 class="title" data-rv>What is Notespack?</h2>
+    <div class="two">
+      <p class="lead" data-rv>Notespack helps students discover, share, and attend events around campus. Browse what's happening, filter by what you care about, and create your own events to invite friends. Built as a group project for CSE 325.</p>
+      <div class="glass tilt info" data-rv>
+        <div class="row"><div class="k">Who</div><div class="v">Campus students</div></div>
+        <div class="row"><div class="k">What</div><div class="v">Events platform</div></div>
+        <div class="row"><div class="k">My part</div><div class="v">Entire frontend homepage</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 STATS -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>02 · Scope</div>
+    <h2 class="title" data-rv>What I shipped</h2>
+    <div class="stats">
+      <div class="stat c" data-rv><div class="num" data-count="9">0</div><div class="bar"></div><div class="lab">Homepage sections</div><div class="cap">Hero · Marquee · Categories · Why · Stats · Featured · Testimonials · How · CTA</div></div>
+      <div class="stat v" data-rv><div class="num" data-count="6">0</div><div class="bar"></div><div class="lab">Files changed</div><div class="cap">Index.cshtml · _Layout.cshtml · Privacy · site.css · site.js · NPlogo.png</div></div>
+      <div class="stat p" data-rv><div class="num" data-count="0">0</div><div class="bar"></div><div class="lab">Backend files touched</div><div class="cap">Rosana's models and controllers are untouched. Pure frontend.</div></div>
+    </div>
+  </section>
+
+  <!-- 4 TOUR -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>03 · Homepage Tour</div>
+    <h2 class="title" data-rv>Nine sections, top to bottom</h2>
+    <div class="tour">
+      <div class="spine" data-rv>
+        <div class="node"><div class="dot" style="background:var(--cyan)">01</div><div><div class="nm">Hero</div><div class="ds">Animated split text, gradient rule, dual call-to-action buttons</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--cyan)">02</div><div><div class="nm">Event marquee</div><div class="ds">Glowing horizontal scroll of event names</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--cyan)">03</div><div><div class="nm">Categories ribbon</div><div class="ds">Pills with active state, ready for filter wiring</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--violet)">04</div><div><div class="nm">Why Notespack</div><div class="ds">Three glass cards with 3D tilt and cursor glow</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--violet)">05</div><div><div class="nm">Stat counters</div><div class="ds">Numbers animate from zero when scrolled into view</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--violet)">06</div><div><div class="nm">Featured events</div><div class="ds">Six cards with gradient covers and date badges</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--pink)">07</div><div><div class="nm">Testimonials</div><div class="ds">Student quotes with avatar gradient circles</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--pink)">08</div><div><div class="nm">How it works</div><div class="ds">Three numbered steps from sign-in to attend</div></div></div>
+        <div class="node"><div class="dot" style="background:var(--pink)">09</div><div><div class="nm">CTA strip</div><div class="ds">Secondary conversion path before the footer</div></div></div>
+      </div>
+      <div class="glass tilt plus" data-rv>
+        <h4>Plus</h4>
+        <div class="pr"><i style="background:var(--cyan)"></i>Circular chrome NP navbar logo</div>
+        <div class="pr"><i style="background:var(--violet)"></i>Skip-to-content link for keyboard users</div>
+        <div class="pr"><i style="background:var(--pink)"></i>Multi-column footer (Brand · Product · For Students · Company)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 TOUCHES -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>04 · Interactions</div>
+    <h2 class="title" data-rv>The little touches, in plain words</h2>
+    <p class="subtitle" data-rv>Just vanilla JavaScript plus a tiny GSAP cameo for the hero entrance. No heavy libraries. <b style="color:var(--cyan)">(Hover these cards — this is the real effect.)</b></p>
+    <div class="grid3">
+      <div class="glass tilt fcard" data-rv><div class="chip" style="background:var(--g1)"></div><h3>3D card tilt</h3><p>Cards lean toward your mouse as you move across them. Subtle, not loud.</p></div>
+      <div class="glass tilt fcard" data-rv><div class="chip" style="background:var(--g2)"></div><h3>Cursor glow</h3><p>Each card has a soft cyan light inside that follows your cursor.</p></div>
+      <div class="glass tilt fcard" data-rv><div class="chip" style="background:var(--g1)"></div><h3>Cursor halo</h3><p>A faint cyan dot trails your mouse everywhere on the page.</p></div>
+      <div class="glass tilt fcard" data-rv><div class="chip" style="background:var(--g2)"></div><h3>Smooth fade-ins</h3><p>Sections gently fade up as you scroll down. No sudden jumps.</p></div>
+      <div class="glass tilt fcard" data-rv><div class="chip" style="background:var(--g1)"></div><h3>Counting numbers</h3><p>The stat numbers count from zero to their target when you scroll past.</p></div>
+      <div class="glass tilt fcard" data-rv><div class="chip" style="background:var(--g2)"></div><h3>Active pill</h3><p>Clicked category pills fill with cyan to show what's selected.</p></div>
+    </div>
+  </section>
+
+  <!-- 6 A11Y -->
+  <section class="slide full" data-foot="0">
+    <div class="bleed g1bleed"></div>
+    <div class="eyebrow w" data-rv>05 · Accessibility</div>
+    <h2 class="huge" data-rv style="font-size:clamp(40px,8vw,96px)">a11y means accessibility.</h2>
+    <p data-rv style="color:rgba(255,255,255,.9);font-size:clamp(18px,3vw,34px);margin-top:2vh">The 11 stands for the eleven letters between 'a' and 'y'.</p>
+    <div class="examples">
+      <div class="ex" data-rv><div class="ring"></div><div class="el">Blind users</div><div class="ed">Navigate using screen readers</div></div>
+      <div class="ex" data-rv><div class="ring"></div><div class="el">Keyboard only</div><div class="ed">Tab key, arrow keys, no mouse</div></div>
+      <div class="ex" data-rv><div class="ring"></div><div class="el">Low vision</div><div class="ed">Need high contrast and big text</div></div>
+      <div class="ex" data-rv><div class="ring"></div><div class="el">Color blind</div><div class="ed">Cannot rely on color alone</div></div>
+    </div>
+    <p data-rv style="color:#fff;font-weight:600;font-size:18px;margin-top:5vh">Our homepage works for all of them.</p>
+  </section>
+
+  <!-- 7 WCAG -->
+  <section class="slide full" data-foot="0">
+    <div class="bleed g2bleed"></div>
+    <div class="eyebrow w" data-rv>06 · Standards</div>
+    <h2 class="huge" data-rv style="font-size:clamp(40px,7vw,84px)">WCAG 2.1 AA</h2>
+    <p data-rv style="color:rgba(255,255,255,.9);font-size:clamp(16px,2.4vw,28px);margin-top:1.5vh">Web Content Accessibility Guidelines, version 2.1, level AA.</p>
+    <div class="wcard" data-rv>
+      <div><h5>What it is</h5><p>The global rulebook for web accessibility. Three levels: A (minimum), AA (industry standard), AAA (strictest). AA is what BYU, government sites, and most companies require.</p></div>
+      <div><h5>What we pass</h5><ul><li>Text contrast 4.5 to 1</li><li>Keyboard navigation works</li><li>Focus rings visible</li><li>Reduced motion respected</li></ul></div>
+    </div>
+    <p data-rv style="color:#fff;font-weight:600;font-size:18px;margin-top:4vh">The homepage passes.</p>
+  </section>
+
+  <!-- 8 RESPONSIVE -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>07 · Responsive</div>
+    <h2 class="title" data-rv>Works on every screen size</h2>
+    <p class="subtitle" data-rv>Four breakpoints. The layout adapts so the page never feels cramped or stretched.</p>
+    <div class="devs">
+      <div class="dev" data-rv><div class="screen" style="width:230px;height:150px;border:2px solid var(--cyan);box-shadow:0 0 30px rgba(0,212,255,.3)"><i style="background:var(--cyan)"></i><i style="background:var(--cyan)"></i><i style="background:var(--cyan)"></i></div><div class="dn">Desktop</div><div class="dr" style="color:var(--cyan)">≥ 900px</div><div class="db">Full 4-column footer, full nav</div></div>
+      <div class="dev" data-rv><div class="screen" style="width:150px;height:135px;border:2px solid var(--violet);box-shadow:0 0 30px rgba(107,62,255,.3)"><i style="background:var(--violet)"></i><i style="background:var(--violet)"></i><i style="background:var(--violet)"></i></div><div class="dn">Tablet</div><div class="dr" style="color:var(--violet)">720–900px</div><div class="db">Two-column footer</div></div>
+      <div class="dev" data-rv><div class="screen" style="width:90px;height:155px;border:2px solid var(--pink);box-shadow:0 0 30px rgba(255,78,168,.3)"><i style="background:var(--pink)"></i><i style="background:var(--pink)"></i><i style="background:var(--pink)"></i></div><div class="dn">Mobile</div><div class="dr" style="color:var(--pink)">480–720px</div><div class="db">Stacked layout, condensed nav</div></div>
+      <div class="dev" data-rv><div class="screen" style="width:64px;height:128px;border:2px solid var(--pink);box-shadow:0 0 30px rgba(255,78,168,.3)"><i style="background:var(--pink)"></i><i style="background:var(--pink)"></i></div><div class="dn">Phone</div><div class="dr" style="color:var(--pink)">&lt; 480px</div><div class="db">Logo only, wordmark hidden</div></div>
+    </div>
+  </section>
+
+  <!-- 9 COMPARE -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>08 · Proposal Coverage</div>
+    <h2 class="title" data-rv>What was asked, what I shipped</h2>
+    <div class="cols">
+      <div class="col glass tilt" data-rv><div class="hd" style="background:var(--cyan)">Done · 4</div><ul>
+        <li><b style="color:var(--cyan)">✓</b>Browse events (Featured Events grid)</li>
+        <li><b style="color:var(--cyan)">✓</b>See categories (ribbon)</li>
+        <li><b style="color:var(--cyan)">✓</b>Mobile responsive</li>
+        <li><b style="color:var(--cyan)">✓</b>Modern UI</li></ul></div>
+      <div class="col glass tilt" data-rv><div class="hd" style="background:var(--violet)">UI Ready · 1</div><ul>
+        <li><b style="color:var(--violet)">◐</b>Filter by category. Pills wired to click, waiting on the filter endpoint.</li></ul></div>
+      <div class="col glass tilt" data-rv><div class="hd" style="background:var(--pink)">Pending · 5</div><ul>
+        <li><b style="color:var(--pink)">○</b>Sign in / Register</li>
+        <li><b style="color:var(--pink)">○</b>Create event</li>
+        <li><b style="color:var(--pink)">○</b>Edit / Delete event</li>
+        <li><b style="color:var(--pink)">○</b>Share event with code</li>
+        <li><b style="color:var(--pink)">○</b>Search</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 10 FILES -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>09 · Change Log</div>
+    <h2 class="title" data-rv>The six files I changed</h2>
+    <p class="subtitle" data-rv>Pure frontend. Rosana's backend scaffold is untouched.</p>
+    <div class="files">
+      <div class="frow" data-rv><span class="acc"></span><span class="fp">Views/Home/Index.cshtml</span><span class="pp">9 homepage sections, all the magic happens here</span></div>
+      <div class="frow" data-rv><span class="acc"></span><span class="fp">Views/Shared/_Layout.cshtml</span><span class="pp">Circular navbar logo, 4-column footer</span></div>
+      <div class="frow" data-rv><span class="acc"></span><span class="fp">Views/Home/Privacy.cshtml</span><span class="pp">Themed privacy page to match</span></div>
+      <div class="frow" data-rv><span class="acc"></span><span class="fp">wwwroot/css/site.css</span><span class="pp">Full design system, breakpoints, motion</span></div>
+      <div class="frow" data-rv><span class="acc"></span><span class="fp">wwwroot/js/site.js</span><span class="pp">Reveals, counters, cursor glow, 3D tilt</span></div>
+      <div class="frow" data-rv><span class="acc"></span><span class="fp">wwwroot/img/NPlogo.png</span><span class="pp">Chrome NP brand asset</span></div>
+    </div>
+    <div class="pill" data-rv>Backend untouched · Zero database changes</div>
+  </section>
+
+  <!-- 11 ROADMAP -->
+  <section class="slide" data-foot="1">
+    <div class="eyebrow" data-rv>10 · Roadmap</div>
+    <h2 class="title" data-rv>What comes next</h2>
+    <p class="subtitle" data-rv>Eight follow-up pull requests the team will tackle next.</p>
+    <div class="grid4">
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--cyan)">01</div><h4>Login + Register views</h4><p>Marco and Rebeca, themed forms wired to Melissa's auth backend</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--violet)">02</div><h4>Events browse page</h4><p>Full list with the search and filter UI already drafted</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--pink)">03</div><h4>Event details page</h4><p>Single event view with the share modal trigger</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--cyan)">04</div><h4>Create event form</h4><p>Posted to Joseph's EventsController.Create endpoint</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--violet)">05</div><h4>Edit event form</h4><p>Owners only, validated on the backend</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--pink)">06</div><h4>Delete confirmation</h4><p>Confirm modal with backend cascade handled</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--cyan)">07</div><h4>My events dashboard</h4><p>Authorized view, lists what the user created or saved</p></div>
+      <div class="glass tilt rcard" data-rv><div class="rn" style="color:var(--violet)">08</div><h4>Share modal</h4><p>Access code copy-to-clipboard built on Melissa's share logic</p></div>
+    </div>
+  </section>
+
+  <!-- 12 CLOSING -->
+  <section class="slide full" data-foot="0">
+    <div class="bleed" style="background:var(--g3)"></div>
+    <h2 class="huge close-h" data-rv>Frontend is ready.</h2>
+    <div class="close-s" data-rv>Backend, take it from here.</div>
+    <p class="close-b" data-rv>Pull the branch. Run it locally. Drop comments on the PR. Questions go to Marco.</p>
+    <div style="display:flex;gap:6vw;margin-top:6vh">
+      <div data-rv><div style="color:rgba(255,255,255,.7);letter-spacing:.2em;font-size:11px;text-transform:uppercase">Branch</div><div style="color:#fff;font-weight:600;margin-top:.5vh">marco/frontend-design</div></div>
+      <div data-rv><div style="color:rgba(255,255,255,.7);letter-spacing:.2em;font-size:11px;text-transform:uppercase">Team</div><div style="color:#fff;font-weight:600;margin-top:.5vh">The Syntax Errors · CSE 325</div></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+const N=slides.length;
+let cur=0, animating=false;
+const prog=document.getElementById('prog');
+const cnt=document.getElementById('cnt');
+const hud=document.getElementById('hud')||(()=>{const h=document.createElement('div');h.id='hud';document.body.appendChild(h);return h;})();
+slides.forEach((_,i)=>{const d=document.createElement('div');d.className='d';d.onclick=()=>go(i);hud.appendChild(d);});
+const dots=[...hud.children];
+
+// footer injection
+slides.forEach((s,i)=>{
+  if(s.dataset.foot==="1"){
+    const f=document.createElement('div');f.className='foot';
+    f.innerHTML=`<span>Notespack · Frontend Build</span><span>${String(i+1).padStart(2,'0')} / 12</span>`;
+    s.appendChild(f);
+  }
+});
+
+function reveal(s){
+  const items=[...s.querySelectorAll('[data-rv]')];
+  items.forEach((el,i)=>{el.classList.remove('show');el.style.transitionDelay=(i*70)+'ms';});
+  void s.offsetWidth;
+  requestAnimationFrame(()=>items.forEach(el=>el.classList.add('show')));
+  s.querySelectorAll('.rule,.spine,.stat').forEach(el=>{el.classList.remove('show');requestAnimationFrame(()=>el.classList.add('show'));});
+  // count up
+  s.querySelectorAll('[data-count]').forEach(el=>{
+    const t=+el.dataset.count; let st=null; const dur=1100;
+    el.textContent='0';
+    function step(ts){if(!st)st=ts;const p=Math.min((ts-st)/dur,1);const e=1-Math.pow(1-p,3);
+      el.textContent=Math.round(e*t);if(p<1)requestAnimationFrame(step);}
+    setTimeout(()=>requestAnimationFrame(step),420);
+  });
+}
+
+function go(n){
+  n=Math.max(0,Math.min(N-1,n));
+  if(n===cur||animating)return;
+  animating=true;
+  const out=slides[cur], inc=slides[n], fwd=n>cur;
+  out.classList.remove('active');
+  out.classList.add('left');
+  inc.classList.remove('left');
+  if(!fwd){ // came from left when going back
+    inc.style.transform='translateX(-7%) rotateY(7deg) scale(.96)';
+    void inc.offsetWidth; inc.style.transform='';
+  }
+  inc.classList.add('active');
+  reveal(inc);
+  cur=n;
+  prog.style.width=((n)/(N-1)*100)+'%';
+  cnt.innerHTML=`<b>${String(n+1).padStart(2,'0')}</b> / 12`;
+  dots.forEach((d,i)=>d.classList.toggle('on',i===n));
+  setTimeout(()=>{out.classList.remove('left');animating=false;},800);
+}
+
+// init
+slides[0].classList.add('active');reveal(slides[0]);dots[0].classList.add('on');prog.style.width='0%';
+// deep-link: index.html#5 jumps to slide 5 (1-based)
+function fromHash(){const m=parseInt(location.hash.replace('#',''));if(m>=1&&m<=N){const t=m-1;slides.forEach(s=>s.classList.remove('active','left'));slides[t].classList.add('active');reveal(slides[t]);cur=t;prog.style.width=(t/(N-1)*100)+'%';cnt.innerHTML=`<b>${String(t+1).padStart(2,'0')}</b> / 12`;dots.forEach((d,i)=>d.classList.toggle('on',i===t));}}
+if(location.hash)fromHash();
+addEventListener('hashchange',fromHash);
+
+// nav
+addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();go(cur+1);}
+  if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(cur-1);}
+  if(e.key==='Home')go(0); if(e.key==='End')go(N-1);
+  if(e.key.toLowerCase()==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+});
+let wlock=false;
+addEventListener('wheel',e=>{if(wlock)return;if(Math.abs(e.deltaY)<24)return;wlock=true;go(cur+(e.deltaY>0?1:-1));setTimeout(()=>wlock=false,900);},{passive:true});
+addEventListener('click',e=>{if(e.target.closest('#hud,.tilt,a'))return;go(cur+(e.clientX>innerWidth*0.5?1:-1));});
+let tx=0;addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(cur+(dx<0?1:-1));});
+
+// cursor fx
+const halo=document.getElementById('halo'),dot=document.getElementById('dot');
+let mx=innerWidth/2,my=innerHeight/2,hx=mx,hy=my;
+if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('touch');
+addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';
+  // parallax orbs
+  const ox=(mx/innerWidth-.5),oy=(my/innerHeight-.5);
+  document.querySelector('.orb.a').style.marginLeft=(ox*-30)+'px';
+  document.querySelector('.orb.b').style.marginLeft=(ox*30)+'px';
+  document.querySelector('.orb.c').style.marginTop=(oy*30)+'px';
+});
+(function loop(){hx+=(mx-hx)*.18;hy+=(my-hy)*.18;halo.style.left=hx+'px';halo.style.top=hy+'px';requestAnimationFrame(loop);})();
+
+// 3D tilt + spotlight
+function bindTilt(){
+  document.querySelectorAll('.tilt').forEach(el=>{
+    if(el._b)return;el._b=1;
+    el.addEventListener('mousemove',e=>{
+      const r=el.getBoundingClientRect();
+      const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+      el.style.setProperty('--mx',(px*100)+'%');
+      el.style.setProperty('--my',(py*100)+'%');
+      el.style.transform=`rotateY(${(px-.5)*12}deg) rotateX(${-(py-.5)*12}deg) translateZ(8px)`;
+      el.style.boxShadow=`0 30px 60px rgba(0,0,0,.45)`;
+    });
+    el.addEventListener('mouseleave',()=>{el.style.transform='';el.style.boxShadow='';});
+    el.addEventListener('mouseenter',()=>{halo.style.width='60px';halo.style.height='60px';});
+    el.addEventListener('mouseleave',()=>{halo.style.width='34px';halo.style.height='34px';});
+  });
+}
+bindTilt();
+</script>
+</body>
+</html>

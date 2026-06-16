@@ -1,13 +1,28 @@
 # Notespack — Frontend Build Deck
 
-A premium, fully animated keynote presentation for Marco's frontend contribution
-to the **Notespack** campus events platform (CSE 325, BYU-Idaho · Team "The Syntax Errors").
+A premium, fully animated presentation for Marco's frontend contribution to the
+**Notespack** campus events platform (CSE 325, BYU-Idaho · Team "The Syntax Errors").
 
-Built to feel like a modern product launch: Apple-keynote pacing, Stripe-level
-polish, Linear-level restraint. Every slide opens with a sequenced entrance and
-every slide change uses a deliberate transition.
+## ⭐ Main deliverable — the live web presentation
 
-## Deliverable
+**`index.html`** — a self-contained animated presentation that runs in any browser.
+This is the showpiece. **Just double-click `index.html`** (or open it in Chrome/Edge/Safari).
+
+What it does that a slideshow can't:
+- **Real 3D card tilt** — cards lean toward your cursor in true perspective
+- **Cursor glow + halo** — a light follows your pointer; cards light up from inside
+- **Animated gradient mesh** background with parallax orbs that react to the mouse
+- **Count-up stat numbers** (0 → 9 / 6 / 0) and an animated timeline spine
+- **Staggered entrance reveals** on every slide + 3D slide transitions
+
+Controls: **→ ← or Space** to move, **F** for fullscreen, click/scroll/swipe also work,
+and the dots at the bottom jump to any slide. Present it fullscreen (F) for max impact.
+
+> Tip: it loads premium web fonts when online and falls back to clean system fonts
+> offline — either way it looks great. To share a link, drop it on GitHub Pages
+> (Settings ▸ Pages ▸ deploy from branch) and the URL serves `index.html` directly.
+
+## Secondary deliverable — the PowerPoint version
 
 - **`deck/notespack_frontend_v3.pptx`** — the presentation. Open in **Microsoft
   PowerPoint** for the full effect (entrance animations + transitions auto-play on
